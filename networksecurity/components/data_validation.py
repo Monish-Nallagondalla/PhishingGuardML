@@ -19,4 +19,4 @@ class DataValidation:
             raise NetworkSecurityException(e,sys)
         
 
-        
+    @staticmethod
