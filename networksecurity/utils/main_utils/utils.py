@@ -16,7 +16,7 @@ def read_yaml_file(file_path: str) -> dict:
     except Exception as e:
         raise NetworkSecurityException(e, sys) from e
     
-def write_yaml_file(file_path: str, content: object, replace: bool = False) -> None:
+def write_yaml_file(file_path: str, content: object, replace: bool = False) -> None:                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
     try:
         if replace:
             if os.path.exists(file_path):
@@ -47,3 +47,20 @@ def save_object(file_path:str , obj: object) -> None:
     except Exception as e:
         raise NetworkSecurityException(e, sys) from e
     
+def load_object(file_path: str) -> object:
+    try:
+        if not os.path.exists(file_path):
+            raise Exception (f'The file:{file_path} does not exist')
+        with open(file_path,'rb') as file_obj:
+            print(file_obj)
+            return pickle.load(file_obj)
+    except Exception as e:
+        raise NetworkSecurityException (e,sys) from e
+    
+def load_numpy_array_data(file_path : str ) -> np.array:
+    try:
+        with open(file_path,'rb') as file_obj:
+            return np.load(file_obj)
+    except Exception as e:
+        raise NetworkSecurityException (e,sys) from e     
+
