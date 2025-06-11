@@ -33,7 +33,8 @@ import dagshub
 os.environ["MLFLOW_TRACKING_URI"]="https://dagshub.com/Monish-Nallagondalla/PhishingGuardML.mlflow"
 os.environ["MLFLOW_TRACKING_USERNAME"]="Monish-Nallagondalla/"
 os.environ["MLFLOW_TRACKING_PASSWORD"]="417ac0bdaf269365b06f763d36db323b2964ab54"
-
+import dagshub
+dagshub.init(repo_owner='Monish-Nallagondalla', repo_name='PhishingGuardML', mlflow=True)
 
 class ModelTrainer:
     def __init__(self,model_trainer_config:ModelTrainerConfig,data_transformation_artifact:DataTransformationArtifact):
@@ -43,27 +44,33 @@ class ModelTrainer:
         except Exception as e:
             raise NetworkSecurityException(e,sys)
         
-    def track_mlflow(self,best_model,classificationmetric):
-        mlflow.set_registry_uri("https://dagshub.com/Monish-Nallagondalla/PhishingGuardML.mlflow")
-        tracking_url_type_store = urlparse(mlflow.get_artifact_uri()).scheme
 
+        
+    def track_mlflow(self,best_model,classificationmetric,best_model_name):
+        mlflow.set_registry_uri("https://dagshub.com/Monish-Nallagondalla/PhishingGuardML.mlflow")
+        tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
         with mlflow.start_run():
-            f1_score = classificationmetric.f1_score
-            precision_score = classificationmetric.precision_score
+            f1_score=classificationmetric.f1_score
+            precision_score=classificationmetric.precision_score
             recall_score=classificationmetric.recall_score
+
+            
 
             mlflow.log_metric("f1_score",f1_score)
             mlflow.log_metric("precision",precision_score)
             mlflow.log_metric("recall_score",recall_score)
-            mlflow.sklearn.log_model(best_model,"model")
-
+            #mlflow.sklearn.log_model(best_model,"model")
+            # Model registry does not work with file store
             if tracking_url_type_store != "file":
 
-                mlflow.sklearn.log_model(best_model, "model", registered_model_name=best_model)
+                # Register the model
+                # There are other ways to use the Model Registry, which depends on the use case,
+                # please refer to the doc for more information:
+                # https://mlflow.org/docs/latest/model-registry.html#api-workflow
+                mlflow.sklearn.log_model(best_model, "model", registered_model_name=best_model_name)
             else:
                 mlflow.sklearn.log_model(best_model, "model")
-
-
+        
     def train_model(self,X_train,y_train,x_test,y_test):
         models = {
                 "Random Forest": RandomForestClassifier(verbose=1),
@@ -116,13 +123,13 @@ class ModelTrainer:
         classification_train_metric=get_classification_score(y_true=y_train,y_pred=y_train_pred)
         
         ## Track the experiements with mlflow
-        self.track_mlflow(best_model,classification_train_metric)
+        self.track_mlflow(best_model,classification_train_metric,best_model_name)
 
 
         y_test_pred=best_model.predict(x_test)
         classification_test_metric=get_classification_score(y_true=y_test,y_pred=y_test_pred)
 
-        self.track_mlflow(best_model,classification_test_metric)
+        self.track_mlflow(best_model,classification_test_metric,best_model_name)
 
         preprocessor = load_object(file_path=self.data_transformation_artifact.transformed_object_file_path)
             
@@ -144,25 +151,30 @@ class ModelTrainer:
         return model_trainer_artifact
 
 
+        
 
 
-    def initiate_model_trainer (self)->ModelTrainerArtifact:
+
+
+    def initiate_model_trainer(self)->ModelTrainerArtifact:
         try:
             train_file_path = self.data_transformation_artifact.transformed_train_file_path
             test_file_path = self.data_transformation_artifact.transformed_test_file_path
 
+            #loading training array and testing array
             train_arr = load_numpy_array_data(train_file_path)
             test_arr = load_numpy_array_data(test_file_path)
 
-            x_train,y_train,x_test,y_test = (
-                train_arr[:,:-1],
-                train_arr[:,-1],
-                test_arr[:,:-1],
-                test_arr[:,-1]
+            x_train, y_train, x_test, y_test = (
+                train_arr[:, :-1],
+                train_arr[:, -1],
+                test_arr[:, :-1],
+                test_arr[:, -1],
             )
 
-            model_trainer_artifact = self.train_model(x_train,y_train,x_test,y_test)
+            model_trainer_artifact=self.train_model(x_train,y_train,x_test,y_test)
             return model_trainer_artifact
-        
+
+            
         except Exception as e:
             raise NetworkSecurityException(e,sys)
